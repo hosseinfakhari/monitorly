@@ -1,0 +1,5 @@
+websites:
+  github:
+    url: 'https://github.com'
+    period: 5 # in second
+    regexp: null
