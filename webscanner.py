@@ -1,4 +1,6 @@
-"""Webscanner checks website availability and produce its data into kafka topic"""
+"""
+Webscanner checks website availability and produce its data into kafka topic
+"""
 import time
 import threading
 import signal
@@ -19,8 +21,12 @@ lock = threading.Lock()
 logger = get_logger(__name__)
 
 
-def graceful_shutdown(signal, frame):
-    logger.warning(f'Termination Signal({signal}) Captured: {frame}')
+def graceful_shutdown(input_signal, frame):
+    """
+    Handling SIGINT and SIGTERM from OS and populate all thread before
+    exiting.
+    """
+    logger.warning('Termination Signal(%s) Captured: %s', input_signal, frame)
     logger.warning('Graceful Shutting down....')
     for thread in threads:
         thread.join()
@@ -28,29 +34,43 @@ def graceful_shutdown(signal, frame):
     sys.exit(0)
 
 
-def fetch(producer, kafka_topic, url: str, regexp: str) -> dict:
+def fetch(kafka_producer, topic, url: str, regex: str) -> dict:
+    """
+    Fetching web url and checking for regex pattern if provided.
+    """
     now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
     try:
         response = requests.get(url)
-        is_valid = validate_regex(response.text, regexp)
-        result = {'timestamp': now, 'url': url, 'status_code': response.status_code,
-                  'response_time': response.elapsed.total_seconds(), 'regex_valid': is_valid}
+        is_valid = validate_regex(response.text, regex)
+        result = {
+            'timestamp': now,
+            'url': url,
+            'status_code': response.status_code,
+            'response_time': response.elapsed.total_seconds(),
+            'regex_valid': is_valid
+        }
         logger.info(result)
         lock.acquire()
-        producer.send(kafka_topic, result)
+        kafka_producer.send(topic, result)
         lock.release()
     except requests.exceptions.Timeout:
-        logging.error(f'Timeout for ({url})')
+        logging.error('Timeout for (%s)', url)
     except requests.exceptions.TooManyRedirects:
-        logging.warning(f'Too Many Redirect ({url})')
-    except requests.exceptions.RequestException as e:
-        logging.error(e)
+        logging.warning('Too Many Redirect (%s)', url)
+    except requests.exceptions.RequestException as error:
+        logging.error(error)
 
 
-def monitor_website(producer, kafka_topic, url, regexp):
-    t = threading.Thread(target=fetch, args=(producer, kafka_topic, url, regexp))
-    t.start()
-    threads.append(t)
+def monitor_website(kafka_producer, topic, url, regex):
+    """
+    Monitors website availability within a thread.
+    """
+    thread = threading.Thread(
+        target=fetch,
+        args=(kafka_producer, topic, url, regex)
+    )
+    thread.start()
+    threads.append(thread)
 
 
 if __name__ == '__main__':

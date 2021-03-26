@@ -11,6 +11,10 @@ __pycache__/
 .idea
 .vscode
 
+
+# cert files
+.certs
+
 # Distribution / packaging
 .Python
 build/

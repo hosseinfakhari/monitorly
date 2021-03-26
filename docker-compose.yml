@@ -1,0 +1,21 @@
+services:
+  webscanner:
+    build: .
+    environment:
+      - KAFKA_URI=localhost:9092
+      - KAFKA_TOPIC=weblog
+      - KAFKA_CA=ca.pem
+      - KAFKA_SERVICE_CERT=service.cert
+      - KAFKA_SERVICE_KEY=service.key
+    command: python webscanner.py
+
+  consumer:
+    build: .
+    environment:
+      - KAFKA_URI=localhost:9092
+      - KAFKA_TOPIC=weblog
+      - KAFKA_CA=ca.pem
+      - KAFKA_SERVICE_CERT=service.cert
+      - KAFKA_SERVICE_KEY=service.key
+      - POSTGRES_URI=postgres://postgres:postgres@localhost/monitorly
+    command: python consumer.py

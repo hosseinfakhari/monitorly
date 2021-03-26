@@ -1,16 +1,21 @@
+"""
+Main application for consumer side of monitorly
+"""
 import os
-import logging
+
+from utils.logutil import get_logger
 from helpers.kafka_helpers import get_consumer
 from helpers.db_helper import (
     get_database_connection,
     initialize_database,
     save
 )
-from utils.logutil import get_logger
+
 
 logger = get_logger(__name__)
 
 if __name__ == '__main__':
+    # Establishing database connection
     db_connection = get_database_connection()
     initialize_database(db_connection)
     if not os.environ.get('KAFKA_TOPIC'):
@@ -25,22 +30,32 @@ if __name__ == '__main__':
                 url = msg.value.get('url')
                 status_code = msg.value.get('status_code')
                 response_time = msg.value.get('response_time')
-                regex_valid = msg.value.get('regex_valid')
+                REGEX_VALID = msg.value.get('regex_valid')
 
-                if timestamp is None or url is None or status_code is None or response_time is None:
+                if timestamp is None or url is None or status_code is None \
+                        or response_time is None:
                     logger.error('invalid data format consumed')
                     continue
 
-                if regex_valid is None:
-                    regex_valid = 'null'
-                elif regex_valid:
-                    regex_valid = 'true'
+                # Handling python None type for postgres
+                if REGEX_VALID is None:
+                    REGEX_VALID = 'null'
+                elif REGEX_VALID:
+                    REGEX_VALID = 'true'
                 else:
-                    regex_valid = 'false'
+                    REGEX_VALID = 'false'
 
-                save(db_connection, url, timestamp, status_code, response_time, regex_valid)
+                site_metric = {
+                    'url': url,
+                    'timestamp': timestamp,
+                    'status_code': status_code,
+                    'response_time': response_time,
+                    'regex_valid': REGEX_VALID
+                }
+
+                save(db_connection, site_metric)
                 consumer.commit()
-                logger.info(f'consumer committed')
+                logger.info('consumer committed')
         except Exception as error:
-            logger.error(f'Consumer Operation Error: {error}')
+            logger.error('Consumer Operation Error: %s', error)
             continue
