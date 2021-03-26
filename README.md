@@ -14,6 +14,7 @@ environment variables:
 * KAFKA_CA 
 * KAFKA_SERVICE_CERT
 * KAFKA_SERVICE_KEY
+* POSTGRES_URI
 
 ### target website and its configurations should be present in `monitorly.yaml`
 
