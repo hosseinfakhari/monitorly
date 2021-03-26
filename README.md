@@ -15,6 +15,8 @@ environment variables:
 * KAFKA_SERVICE_CERT
 * KAFKA_SERVICE_KEY
 
+### target website and its configurations should be present in `monitorly.yaml`
+
 #### Running Options:
 
 docker compose: 
